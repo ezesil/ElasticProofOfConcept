@@ -14,6 +14,23 @@ namespace ProofOfConceptAnses.Controllers
             _logger = logger;
         }
 
+        [Route("CheckIfDocumentExistsById")]
+        [HttpPost]
+        public async Task<object> CheckIfDocumentExistsById([FromQuery] string id, string index = "documentos")
+        {
+            var connparams = new ConnectionSettings(new Uri("http://localhost:9200")).DefaultIndex(index);
+            var client = new ElasticClient(connparams);
+
+            var response = await client.SearchAsync<Documento>(s => s
+            .Size(0)
+            .Query(q => q
+                 .Match(m => m
+                    .Field(f => f.Id)
+                    .Query(id)))); 
+
+            return new { Exists = response.Total > 0 ? true : false, response.Total };
+        }
+
 
         [Route("GetById")]
         [HttpGet]
