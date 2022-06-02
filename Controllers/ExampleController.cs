@@ -14,9 +14,10 @@ namespace ProofOfConceptAnses.Controllers
             _logger = logger;
         }
 
+
         [Route("GetById")]
         [HttpGet]
-        public async Task<IReadOnlyCollection<Documento>> GetById(string id, string index = "documentos")
+        public async Task<IReadOnlyCollection<Documento>> GetById([FromQuery] string id, string index = "documentos")
         {
             var connparams = new ConnectionSettings(new Uri("http://localhost:9200")).DefaultIndex(index);
             var client = new ElasticClient(connparams);
@@ -32,7 +33,7 @@ namespace ProofOfConceptAnses.Controllers
 
         [Route("GetByName")]
         [HttpGet]
-        public async Task<IReadOnlyCollection<Documento>> GetByName(string id, string index = "documentos")
+        public async Task<IReadOnlyCollection<Documento>> GetByName([FromQuery] string name, string index = "documentos")
         {
             var connparams = new ConnectionSettings(new Uri("http://localhost:9200")).DefaultIndex(index);
             var client = new ElasticClient(connparams);
@@ -41,14 +42,14 @@ namespace ProofOfConceptAnses.Controllers
             .Query(q => q
                  .Match(m => m
                     .Field(f => f.Name)
-                    .Query(id))));
+                    .Query(name))));
 
             return response.Documents;
         }
 
         [HttpPost]
         [Route("InsertDocument")]
-        public async Task<object> InsertDocument([FromBody] Documento document, string index = "documentos")
+        public async Task<object> InsertDocument([FromQuery] Documento document, string index = "documentos")
         {
             var connparams = new ConnectionSettings(new Uri("http://localhost:9200")).DefaultIndex(index);
             var client = new ElasticClient(connparams);
@@ -57,9 +58,47 @@ namespace ProofOfConceptAnses.Controllers
             return new { response.Result, response.IsValid, response.Type, response.Version, response.Id, response.Index };
         }
 
+        [HttpPost]
+        [Route("CreateIndex")]
+        public async Task<object> CreateIndex([FromQuery] string indexname)
+        {
+            var connparams = new ConnectionSettings(new Uri("http://localhost:9200"));
+            var client = new ElasticClient(connparams);
+
+            var response = await client.Indices.CreateAsync(indexname,
+                    index => index.Map(x => x.AutoMap())
+                    );
+
+            return new { response.Acknowledged, response.IsValid, response.Index };
+        }
+
+        [HttpDelete]
+        [Route("DeleteIndex")]
+        public async Task<object> DeleteIndex([FromQuery] string indexname)
+        {
+            var connparams = new ConnectionSettings(new Uri("http://localhost:9200"));
+            var client = new ElasticClient(connparams);
+
+            var response = await client.Indices.DeleteAsync(indexname);
+
+            return new { response.Acknowledged, response.IsValid };
+        }
+
+        [HttpPost]
+        [Route("CheckIfIndexExists")]
+        public async Task<object> GetIndex([FromQuery] string indexname)
+        {
+            var connparams = new ConnectionSettings(new Uri("http://localhost:9200"));
+            var client = new ElasticClient(connparams);
+
+            var response = await client.Indices.GetAsync(indexname);
+
+            return new { response.IsValid };
+        }
+
         [HttpPut]
         [Route("UpdateDocumentById")]
-        public async Task<object> UpdateDocumentById([FromBody] Documento document, string index = "documentos")
+        public async Task<object> UpdateDocumentById([FromQuery] Documento document, string index = "documentos")
         {
             var connparams = new ConnectionSettings(new Uri("http://localhost:9200")).DefaultIndex(index);
             var client = new ElasticClient(connparams);
